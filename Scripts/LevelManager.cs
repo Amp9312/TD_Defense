@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -14,6 +14,9 @@ public class LevelManager : MonoBehaviour
 {
     [SerializeField]
     private GameObject[] tilePrefabs;
+
+    [SerializeField]
+    private CameraMovement cameraMovement;
 
     public float TileSize
     {
@@ -39,8 +42,11 @@ public class LevelManager : MonoBehaviour
         // Note: lines are indicators of when to start a new row (in level txt file)
         string[] mapData = ReadLevelText();
 
+        //Determines the number of X and Y tiles on map
         int mapX = mapData[0].ToCharArray().Length;
         int mapY = mapData.Length;
+
+        Vector3 maxTile = Vector3.zero;
 
         Vector3 worldStart = Camera.main.ScreenToWorldPoint(new Vector3(0, Screen.height));
 
@@ -53,12 +59,14 @@ public class LevelManager : MonoBehaviour
             //Place across x axis
             for (int x = 0; x < mapX; x++)
             {
-                PlaceTile(newTiles[x].ToString(), x, y, worldStart);
+                maxTile = PlaceTile(newTiles[x].ToString(), x, y, worldStart);
             }
         }
+
+        cameraMovement.SetLimits(new Vector3(maxTile.x + TileSize, maxTile.y - TileSize));
     }
 
-    private void PlaceTile(string tileType, int x, int y, Vector3 worldStart)
+    private Vector3 PlaceTile(string tileType, int x, int y, Vector3 worldStart)
     {
         // tileType is being read in from txt document, and it is then parsed into a int file for instantiation
         int tileIndex = int.Parse(tileType);
@@ -68,6 +76,7 @@ public class LevelManager : MonoBehaviour
 
         // Changes position of new tile to one equal the next empty position of last one placed
         newTile.transform.position = new Vector3(worldStart.x + (TileSize * x), worldStart.y - (TileSize * y), 0);
+        return newTile.transform.position;
     }
 
     private string[] ReadLevelText()
