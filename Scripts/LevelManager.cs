@@ -1,9 +1,8 @@
-using System.Collections;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-/* Last Edited 12/2/2020
+/* Last Edited 12/7/2020
  * Edited by Amp
  * 
  * Note - uppercase are properties while lowercase are fields
@@ -12,17 +11,35 @@ using UnityEngine;
 
 public class LevelManager : MonoBehaviour
 {
+    /// <summary>
+    /// VARIABLES AND WHOT NOT
+    /// </summary>
+    /// 
     [SerializeField]
     private GameObject[] tilePrefabs;
 
     [SerializeField]
     private CameraMovement cameraMovement;
 
+    private Point blueSpawn, redSpawn;
+
+    [SerializeField]
+    private GameObject bluePortalPrefab;
+
+    [SerializeField]
+    private GameObject redPortalPrefab;
+
+    public Dictionary<Point, TileScript> Tiles { get; set; }
+
+    //Access the width property of Tile1 via the spriterenderer component in Unity
     public float TileSize
     {
-        //Access the width property of Tile1 via the spriterenderer component in Unity
         get { return tilePrefabs[0].GetComponent<SpriteRenderer>().sprite.bounds.size.x; }
     }
+    /// <summary>
+    /// Start of the code I guess??
+    /// </summary>
+    /// 
 
     // Start is called before the first frame update
     void Start()
@@ -37,8 +54,16 @@ public class LevelManager : MonoBehaviour
         
     }
 
+    /// <summary>
+    /// This is where the fun begins
+    /// </summary>
+    /// 
+
     private void CreateLevel()
     {
+        Tiles = new Dictionary<Point, TileScript>();
+
+
         // Note: lines are indicators of when to start a new row (in level txt file)
         string[] mapData = ReadLevelText();
 
@@ -59,24 +84,34 @@ public class LevelManager : MonoBehaviour
             //Place across x axis
             for (int x = 0; x < mapX; x++)
             {
-                maxTile = PlaceTile(newTiles[x].ToString(), x, y, worldStart);
+                //This actually places the tile
+                PlaceTile(newTiles[x].ToString(), x, y, worldStart);
             }
         }
 
-        cameraMovement.SetLimits(new Vector3(maxTile.x + TileSize, maxTile.y - TileSize));
+        //Take the last position in the map and store it into the next tile
+        maxTile = Tiles[new Point(mapX - 1, mapY - 1)].transform.position;
+
+        cameraMovement.SetLimits(new Vector3(maxTile.x + TileSize, maxTile.y -TileSize));
+
+        SpawnPortals();
     }
 
-    private Vector3 PlaceTile(string tileType, int x, int y, Vector3 worldStart)
+    private void PlaceTile(string tileType, int x, int y, Vector3 worldStart)
     {
         // tileType is being read in from txt document, and it is then parsed into a int file for instantiation
         int tileIndex = int.Parse(tileType);
 
         // Creates Tile
-        GameObject newTile = Instantiate(tilePrefabs[tileIndex]);
+        TileScript newTile = Instantiate(tilePrefabs[tileIndex]).GetComponent<TileScript>();
 
-        // Changes position of new tile to one equal the next empty position of last one placed
-        newTile.transform.position = new Vector3(worldStart.x + (TileSize * x), worldStart.y - (TileSize * y), 0);
-        return newTile.transform.position;
+        // Assigns a point according to current x and y position to the newly placed tile
+
+        newTile.Setup(new Point(x, y), new Vector3(worldStart.x + (TileSize * x), worldStart.y - (TileSize * y), 0));
+
+        Tiles.Add(new Point(x,y),newTile); 
+
+
     }
 
     private string[] ReadLevelText()
@@ -88,5 +123,16 @@ public class LevelManager : MonoBehaviour
 
         //Converts string line to segments that end when they encounter the dash
         return data.Split('-');
+    }
+
+    private void SpawnPortals()
+    {
+        blueSpawn = new Point(0, 0);
+
+       Instantiate(bluePortalPrefab, Tiles[blueSpawn].GetComponent<TileScript>().WorldPosition, Quaternion.identity);
+
+        redSpawn = new Point(11, 6);
+
+        Instantiate(redPortalPrefab, Tiles[redSpawn].GetComponent<TileScript>().WorldPosition, Quaternion.identity);
     }
 }
